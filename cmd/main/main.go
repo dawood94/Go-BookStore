@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dawood94/GO-BOOKSTORE/pkg/routes"
+	"GO-BOOKSTORE/pkg/routes"
 
 	"github.com/gorilla/mux"
 )
@@ -13,6 +13,6 @@ func main() {
 	r := mux.NewRouter()
 	routes.RegisterBookStoreRoutes(r)
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe("localhost:9010", r))
+	log.Fatal(http.ListenAndServe(":9010", r))
 
 }
