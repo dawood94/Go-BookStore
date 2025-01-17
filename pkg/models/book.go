@@ -11,7 +11,7 @@ var db *gorm.DB //database
 type Book struct {
 	gorm.Model // this will add ID, CreatedAt, UpdatedAt, DeletedAt fields to the model
 
-	Name        string `gorm:"" json:"name"`
+	Name        string `gorm:"type:varchar(255)" json:"name"` //  type:varchar(255) legt die maximale Länge der Zeichenfolge auf 255 Zeichen fest
 	Author      string `json:"author"`
 	Publication string `json:"publication"`
 }

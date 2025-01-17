@@ -6,19 +6,22 @@ import (
 	"GO-BOOKSTORE/pkg/utils"
 
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
-var NewBook models.Book
+// var NewBook models.Book
 var db = config.GetDB()
 
 func GetBook(w http.ResponseWriter, r *http.Request) {
 	newBooks := models.GetAllBooks()
-	res, _ := json.Marshal(newBooks)                   //converting to json
+	res, err := json.Marshal(newBooks) //converting to json
+	if err != nil {
+		http.Error(w, "Error while marshalling", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "pkglication/json") //setting the header response
 	w.WriteHeader(http.StatusOK)                       // 200 everything is ok
 	w.Write(res)                                       //sending the response
@@ -26,15 +29,23 @@ func GetBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetBookById(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)                         // getting the value from request route
-	bookId := vars["bookId"]                    //getting the value of id
-	ID, err := strconv.ParseInt((bookId), 0, 0) //converting the string to int
+	vars := mux.Vars(r)                       // getting the value from request route
+	bookId := vars["bookId"]                  //getting the value of id
+	ID, err := strconv.ParseInt(bookId, 0, 0) //converting the string to int
 	if err != nil {
-		fmt.Println("Error while parsing")
-
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
+		return
 	}
-	bookDetails, _ := models.GetBookById(ID) //getting the book by id
-	res, _ := json.Marshal(bookDetails)
+	bookDetails, db := models.GetBookById(ID) //getting the book by id
+	if db.Error != nil {
+		http.Error(w, "Book not found", http.StatusNotFound)
+		return
+	}
+	res, err := json.Marshal(bookDetails)
+	if err != nil {
+		http.Error(w, "Error while marshalling", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "pkglication/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
@@ -45,7 +56,11 @@ func CreateBook(w http.ResponseWriter, r *http.Request) {
 	CreateBook := &models.Book{}   //creating a book instance
 	utils.ParseBody(r, CreateBook) // because we are sending the data in the body of the request we need to parse it
 	b := CreateBook.CreateBook()
-	res, _ := json.Marshal(b)
+	res, err := json.Marshal(b)
+	if err != nil {
+		http.Error(w, "Error while marshalling", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "pkglication/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
@@ -56,10 +71,15 @@ func DeleteBook(w http.ResponseWriter, r *http.Request) {
 	bookId := vars["bookId"]
 	ID, err := strconv.ParseInt(bookId, 0, 0)
 	if err != nil {
-		fmt.Println("Error while parsing")
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
+		return
 	}
 	book := models.DeleteBook(ID)
-	res, _ := json.Marshal(book)
+	res, err := json.Marshal(book)
+	if err != nil {
+		http.Error(w, "Error while marshalling", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "pkglication/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
@@ -72,9 +92,12 @@ func UpdateBook(w http.ResponseWriter, r *http.Request) {
 	bookId := vars["bookId"]
 	ID, err := strconv.ParseInt(bookId, 0, 0)
 	if err != nil {
-		fmt.Println("Error while parsing")
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
 	}
-	bookDetails, _ := models.GetBookById(ID) // we find the book by id that we want to update
+	bookDetails, db := models.GetBookById(ID) // we find the book by id that we want to update
+	if db.Error != nil {
+		http.Error(w, "Book not found", http.StatusNotFound)
+	}
 	if updateBook.Name != "" {
 		bookDetails.Name = updateBook.Name //updating the name of the book by given new name from the user
 
@@ -87,7 +110,11 @@ func UpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.Save(&bookDetails) //saving the updated book
-	res, _ := json.Marshal(bookDetails)
+	res, err := json.Marshal(bookDetails)
+	if err != nil {
+		http.Error(w, "Error while marshalling", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "pkglication/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
